@@ -1,14 +1,17 @@
-package com.example.td2_exo2
+package com.example.td2_exo2.sms
 
+import android.app.Notification
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Build
 import android.telephony.SmsMessage
 import android.util.Log
-import android.widget.Toast
 import com.example.td2_exo2.MainActivity.Companion.contact
+import com.example.td2_exo2.mail.MailStructure
+import com.example.td2_exo2.mail.MailUtils
+import com.example.td2_exo2.notification.NotificationStructure
+import com.example.td2_exo2.notification.NotificationUtils
 
 
 class SmsListener : BroadcastReceiver() {
@@ -21,7 +24,7 @@ class SmsListener : BroadcastReceiver() {
         intent: Intent
     ) { // TODO Auto-generated method stub
         if (intent.action == "android.provider.Telephony.SMS_RECEIVED") {
-            Toast.makeText(context, "message received", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "message received", Toast.LENGTH_SHORT).show()
             val bundle = intent.extras
             try {
                 if (bundle != null) {
@@ -40,9 +43,23 @@ class SmsListener : BroadcastReceiver() {
                     }
 
                     for(item in contact){
-
                         if(item.num.equals("0"+msgSource!!.subSequence(4,msgSource!!.length).replace("\\s".toRegex(), ""))){
-                            Toast.makeText(context, "message is:$msgBody// source: $msgSource", Toast.LENGTH_LONG).show()
+                            val sendMail=MailUtils(
+                                item.mail,
+                                MailStructure.subject,
+                                MailStructure.text)
+
+                            val mNotificationUtils =
+                                NotificationUtils(
+                                    context
+                                )
+
+                            val nb: Notification.Builder? = mNotificationUtils.getAndroidChannelNotification(
+                                NotificationStructure.title, NotificationStructure.body+item.mail)
+                            mNotificationUtils.getManager().notify(101,nb!!.build())
+
+                            //Toast.makeText(context, "success", Toast.LENGTH_LONG).show()
+
 
                         }
                     }
@@ -55,8 +72,7 @@ class SmsListener : BroadcastReceiver() {
         }
     }
 
-    fun isOnContact(contact:String){
 
 
-    }
+
 }

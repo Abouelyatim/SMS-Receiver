@@ -8,10 +8,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
-import android.text.TextUtils.replace
 import android.transition.Slide
 import android.transition.TransitionManager
 import android.view.Gravity
@@ -20,23 +18,34 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.gms.tasks.TaskCompletionSource
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.td2_exo2.adapter.ContactAdapter
+import com.example.td2_exo2.entity.Contact
+import com.example.td2_exo2.mail.AppExecutors
+import com.example.td2_exo2.sms.SmsListener
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.popup.*
 
 
 class MainActivity : AppCompatActivity() {
 
     companion object{
+        val appExecutors = AppExecutors()
         val contact:MutableList<Contact> = ArrayList()
+
         private val REQUIRED_PERMISSIONS = arrayOf(
             Manifest.permission.RECEIVE_SMS,
-            Manifest.permission.READ_CONTACTS
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.INTERNET
 
         )
     }
+    var cNumber:String?=null
+    var name:String?=null
+
     val SMS_PERMISSION_CODE=1
     val PICK_CONTACT_PERMISSION_CODE=2
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -48,11 +57,21 @@ class MainActivity : AppCompatActivity() {
             dispatchContactIntent()
         }
 
+        val recyclerView: RecyclerView = recycler_view as RecyclerView
+        recyclerView.layoutManager= LinearLayoutManager(this)
+        recyclerView.setHasFixedSize(true)
+
+        val adapter= ContactAdapter()
+        recyclerView.adapter=adapter
+
+        adapter.setContact(contact)
     }
+
     fun dispatchContactIntent() {
         val intent = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
         startActivityForResult(intent, PICK_CONTACT_PERMISSION_CODE)
     }
+
     private fun requestSmsPermission() {
 
         if (allPermissionsGranted()) {
@@ -66,9 +85,11 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
+
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
     }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String?>,
@@ -85,17 +106,16 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    var cNumber:String?=null
-    var name:String?=null
+
+
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK && requestCode == PICK_CONTACT_PERMISSION_CODE) {
 
-
             val contactData: Uri? = data?.data
             val c: Cursor = managedQuery(contactData, null, null, null, null);
             if (c.moveToFirst()) {
-
 
                 val id = c.getString(c.getColumnIndexOrThrow(ContactsContract.Contacts._ID));
 
@@ -162,7 +182,12 @@ class MainActivity : AppCompatActivity() {
         val mail:EditText=view.findViewById<EditText>(R.id.mail)
         buttonPopup.setOnClickListener{
             // Dismiss the popup window
-            val ct=Contact(cNumber!!.replace("\\s".toRegex(), ""),mail.text.toString())
+            val ct= Contact(
+                cNumber!!.replace(
+                    "\\s".toRegex(),
+                    ""
+                ), mail.text.toString(), name!!
+            )
             contact.add(ct)
 
             Toast.makeText(this,"numero ajouter",Toast.LENGTH_SHORT).show()
